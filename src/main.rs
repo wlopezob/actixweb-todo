@@ -1,10 +1,17 @@
 use actix_web::{get, patch, post, App, HttpResponse,
      HttpServer, Responder};
 
+use hostname::get;
 
 #[get("/pizzas")]
 async fn get_pizzas() -> impl Responder {
     HttpResponse::Ok().body("Pizzas avaliable!")    
+}
+
+#[get("/")]
+async fn index() -> impl Responder {
+    let hostname = get().expect("Failed to get hostname");
+    HttpResponse::Ok().body(format!("hostname: {}!", hostname.to_string_lossy()))    
 }
 
 #[post("/buypizza")]
@@ -24,6 +31,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_pizzas)
             .service(buy_pizza)
             .service(update_pizza)
+            .service(index)
     })
     .bind(("127.0.0.1",8080))?
     .run()

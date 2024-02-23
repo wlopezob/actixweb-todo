@@ -1,0 +1,30 @@
+# Usar una imagen oficial de Rust como imagen base
+FROM rust:1.75 as builder
+
+# Crear un nuevo directorio para alojar el código
+WORKDIR /usr/src/myapp
+
+# Copiar el archivo Cargo.toml
+COPY Cargo.toml  ./
+
+# Crear un proyecto dummy para cachear las dependencias
+RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release
+
+# Eliminar el proyecto dummy y copiar el código real
+RUN rm -rf src && rm target/release/deps/myapp*
+COPY . .
+
+# Compilar la aplicación
+RUN cargo build --release
+
+# Crear una nueva etapa para una imagen más pequeña
+FROM debian:buster-slim
+
+# Instalar openssl
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# Copiar el binario de la etapa de construcción
+COPY --from=builder /usr/src/myapp/target/release/myapp /usr/bin/myapp
+
+# Ejecutar la aplicación
+CMD ["myapp"]
