@@ -10,7 +10,8 @@
 				"rust-lang.rust-analyzer",
 				"tamasfe.even-better-toml",
 				"GitHub.copilot-chat",
-				"PKief.material-icon-theme"
+				"PKief.material-icon-theme",
+				"tanhakabir.rest-book"
 			],
 			"settings": {
 				"workbench.preferredDarkColorTheme": "Default Dark Modern",
