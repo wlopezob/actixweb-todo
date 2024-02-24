@@ -1,0 +1,59 @@
+# Usar una imagen oficial de Rust como imagen base
+FROM rust:1.75 as builder
+ARG APPNAME
+# Instala jq
+RUN apt-get update && apt-get install -y jq musl-tools gcc libgcc1
+# Define la variable de entorno RUSTFLAGS para evitar problemas de permisos
+#ENV RUSTFLAGS=-Clinker=musl-gcc
+# Crear un nuevo directorio para alojar el código
+WORKDIR /usr/src/myapp
+# Copiar el archivo Cargo.toml
+COPY Cargo.toml  ./
+# Ejecuta el comando y asigna su salida a la variable NAME
+RUN APPNAME=$(cargo read-manifest | jq -r '.name')
+ENV APPNAME=$APPNAME
+# Crear un proyecto dummy para cachear las dependencias
+#RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release
+# Eliminar el proyecto dummy y copiar el código real
+#RUN rm -rf src && rm -rf target
+COPY . .
+# Compilar la aplicación
+RUN cargo build --release
+
+
+#Crear una nueva etapa para una imagen más pequeña
+FROM debian:bullseye-slim
+ARG APPNAME
+ENV APPNAME=$APPNAME
+ARG APP=/usr/src/app
+WORKDIR ${APP}
+EXPOSE 8000
+
+# Instalar openssl
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# Copiar el binario de la etapa de construcción
+COPY --from=builder /usr/src/myapp/target/release/todo ${APP}/myapp
+RUN ls -la
+
+# Ejecutar la aplicación
+CMD ["myapp"]
+
+
+# FROM alpine:latest
+# ARG APP=/usr/src/app
+# ARG APPNAME
+# ENV APPNAME=$APPNAME
+# EXPOSE 8000
+# ENV TZ=Etc/UTC \
+#     APP_USER=appuser
+# RUN addgroup -S $APP_USER \
+#     && adduser -S -g $APP_USER $APP_USER
+# RUN apk update \
+#     && apk add --no-cache ca-certificates tzdata \
+#     && rm -rf /var/cache/apk/*
+# COPY --from=builder /usr/src/myapp/target/release/${APPNAME} ${APP}/myapp
+# RUN chown -R $APP_USER:$APP_USER ${APP}
+# USER $APP_USER
+# WORKDIR ${APP}
+
+CMD ["./myapp"]
